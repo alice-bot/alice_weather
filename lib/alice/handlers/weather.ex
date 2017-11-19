@@ -5,16 +5,18 @@ defmodule Alice.Handlers.Weather do
   alias Alice.Conn
 
   @api_key Application.get_env(:alice_weather, :api_key)
+  @default_minutely_summary %{"minutely" => %{"summary" => ""}}
   
-  command ~r/weather (?<term>.+)/i, :forecast
-  route ~r/^weather (?<term>.+)/i, :forecast
+  command ~r/weather (?<term>.+)/i, :weather
+  route ~r/^weather for (?<term>.+)/i, :weather
 
   @doc """
   `<location>` - Get weather forecast for the given location.
   Location can an address, a city or a zip code.
   """
-  def forecast(%Conn{message: %{captures: captures}}=conn) do
-    location = captures
+  def weather(%Conn{message: %{captures: captures}}=conn) do
+    [_term, location] = captures
+
     location
     |> reverse_geocode
     |> temperature_url
@@ -23,33 +25,35 @@ defmodule Alice.Handlers.Weather do
     |> summarize(location, conn)
   end
 
-  def reverse_geocode(location) do
+  defp reverse_geocode(location) do
     location
-    |> Geocoder.call
+    |> GoogleGeocodingApi.geo_location
     |> parse_geocoder_response
   end
 
-  def parse_geocoder_response({:ok, %Geocoder.Coords{lat: lat, lon: lon}}), do: {lat, lon}
-  def parse_geocoder_response({:error, _}), do: :error
+  defp parse_geocoder_response(%{"lat" => lat, "lng" => lon}), do: {lat, lon}
+  defp parse_geocoder_response(_), do: :error
 
-  def temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{@api_key}/#{lat},#{lon}"}
-  def temperature_url(_), do: :error
+  defp temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{@api_key}/#{lat},#{lon}"}
+  defp temperature_url(_), do: :error
 
-  def get_forecast({:ok, location_url}), do: HTTPoison.get(location_url)
-  def get_forecast(_), do: :error
+  defp get_forecast({:ok, location_url}), do: HTTPoison.get(location_url)
+  defp get_forecast(_), do: :error
 
-  def parse_response({:ok, %HTTPoison.Response{body: body, status_code: 200}}), do: {:ok, JSON.decode!(body)}
-  def parse_response(_), do: :error
+  defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: 200}}), do: {:ok, JSON.decode!(body)}
+  defp parse_response(_), do: :error
 
-  def summarize({:ok, json}, location, conn) do
+  defp summarize({:ok, weather_data}, location, conn) do
     %{
       "currently" => %{"apparentTemperature" => temperature}, 
       "daily" => %{"summary" => daily_summary},
       "hourly" => %{"summary" => hourly_summary},
       "minutely" => %{"summary" => minutely_summary}
-    } = json
+    } = merge_defaults(weather_data)
 
-    reply(conn, ~s(Current temperature for #{location}: #{temperature}F\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary}))
+    reply(conn, ~s(Current temperature for #{location}: *#{temperature}F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary}))
   end
-end
+  defp summarize(:error, _location, conn), do: reply(conn, ~s(Whoops, that didn't work.))
 
+  defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
+end

@@ -17,16 +17,15 @@ defmodule AliceWeather.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:geocoder, :httpoison]
+      applications: [:httpoison]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-
-      {:geocoder, "~> 0.6.2"},
-      {:httpoison, "~> 0.8.0"},
+      {:google_geocoding_api, "~> 0.1.2"},
+      {:httpoison, "~> 0.9.0", override: true},
       {:json, "~> 1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:alice, "~> 0.3"}
