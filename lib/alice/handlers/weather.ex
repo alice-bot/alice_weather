@@ -12,7 +12,7 @@ defmodule Alice.Handlers.Weather do
 
   @doc """
   `<location>` - Get weather forecast for the given location.
-  Location can an address, a city or a zip code.
+  Location can be an address, a city or a zip code.
   """
   def weather(%Conn{message: %{captures: captures}}=conn) do
     [_term, location] = captures

@@ -4,7 +4,7 @@ This handler will allow Alice to provide the weather forecast of a given locatio
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+If [available in Hex](https://hex.pm/packages/alice_weather), the package can be installed as:
 
 1. Add `alice_weather` to your list of dependencies in `mix.exs`:
 
@@ -26,11 +26,18 @@ end
     end
     ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/alice_weather](https://hexdocs.pm/alice_weather).
+3. Set up the API keys and Geocodex `geocode_api_url` in your app's `config.exs`:
+    ```elixir
+	config :my_bot,
+	  api_key: System.get_env("DARKSKY_API_KEY")
 
+	config :geocodex,
+	  api_key: System.get_env("GOOGLE_GEOCODING_API_KEY")
 
+	config :geocodex,
+	  geocode_api_url: "https://maps.googleapis.com/maps/api/geocode"
+     ```
+		   
 ## Usage
 
 Use `@alice help` for more information.
