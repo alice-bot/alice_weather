@@ -31,7 +31,6 @@ defmodule Alice.Handlers.Weather do
     |> parse_geocoder_response
   end
 
-
   defp parse_geocoder_response(%{"results" => [%{"geometry" => %{"location" => %{"lat" => lat, "lng" => lon}}}]}), do: {lat, lon}
   defp parse_geocoder_response(_), do: :error
 
