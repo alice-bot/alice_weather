@@ -18,13 +18,13 @@ defmodule Alice.Handlers.Weather do
   """
   def weather(%Conn{message: %{captures: captures}}=conn) do
     [_term, location] = captures
+    coords = location |> reverse_geocode
 
-    location
-    |> reverse_geocode
+    coords
     |> temperature_url
     |> get_forecast
     |> parse_response
-    |> summarize(location, conn)
+    |> summarize(location, coords, conn)
   end
 
   defp reverse_geocode(location) do
@@ -45,7 +45,7 @@ defmodule Alice.Handlers.Weather do
   defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: 200}}), do: {:ok, JSON.decode!(body)}
   defp parse_response(_), do: :error
 
-  defp summarize({:ok, weather_data}, location, conn) do
+  defp summarize({:ok, weather_data}, location, {lat, lon}, conn) do
     %{
       "currently" => %{"apparentTemperature" => temperature}, 
       "daily" => %{"summary" => daily_summary},
@@ -54,8 +54,9 @@ defmodule Alice.Handlers.Weather do
     } = merge_defaults(weather_data)
 
     reply(conn, ~s(Current temperature for #{location}: *#{temperature}F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary}))
+    reply(conn, ~s(Please visit darksky.net/forecast/#{lat},#{lon}/us12/en for detailed forecast.))
   end
-  defp summarize(:error, _location, conn), do: reply(conn, ~s(Whoops, that didn't work.))
+  defp summarize(:error, _location, _coords, conn), do: reply(conn, ~s(Whoops, that didn't work.))
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
 end

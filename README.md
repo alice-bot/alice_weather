@@ -1,6 +1,7 @@
 # AliceWeather
 
 This handler will allow Alice to provide the weather forecast of a given location.
+[Powered by Dark Sky](https://darksky.net/poweredby/)
 
 ## Installation
 
