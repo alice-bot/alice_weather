@@ -11,7 +11,9 @@ defmodule Alice.Handlers.Weather do
   route ~r/^weather for (?<term>.+)/i, :weather
 
   @doc """
-  `<location>` - Get weather forecast for the given location.
+  `weather <location>`
+  `weather for <location>` 
+  Get weather forecast for the given location.
   Location can be an address, a city or a zip code.
   """
   def weather(%Conn{message: %{captures: captures}}=conn) do
