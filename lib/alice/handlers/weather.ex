@@ -27,11 +27,12 @@ defmodule Alice.Handlers.Weather do
 
   defp reverse_geocode(location) do
     location
-    |> GoogleGeocodingApi.geo_location
+    |> Geocodex.address
     |> parse_geocoder_response
   end
 
-  defp parse_geocoder_response(%{"lat" => lat, "lng" => lon}), do: {lat, lon}
+
+  def parse_geocoder_response(%{"results" => [%{"geometry" => %{"location" => %{"lat" => lat, "lng" => lon}}}]}), do: {lat, lon}
   defp parse_geocoder_response(_), do: :error
 
   defp temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{@api_key}/#{lat},#{lon}"}

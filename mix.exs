@@ -24,8 +24,8 @@ defmodule AliceWeather.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:google_geocoding_api, "~> 0.1.2"},
-      {:httpoison, "~> 0.11.0", override: true},
+
+      {:geocodex, "~> 0.1.0"},
       {:json, "~> 1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:alice, "~> 0.3"}
