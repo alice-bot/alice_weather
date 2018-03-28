@@ -4,7 +4,6 @@ defmodule Alice.Handlers.Weather do
   use Alice.Router
   alias Alice.Conn
 
-  @api_key Application.get_env(:alice_weather, :api_key)
   @default_minutely_summary %{"minutely" => %{"summary" => ""}}
   
   command ~r/weather (?<term>.+)/i, :weather
@@ -36,7 +35,7 @@ defmodule Alice.Handlers.Weather do
   defp parse_geocoder_response(%{"results" => [%{"geometry" => %{"location" => %{"lat" => lat, "lng" => lon}}}]}), do: {lat, lon}
   defp parse_geocoder_response(_), do: :error
 
-  defp temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{@api_key}/#{lat},#{lon}"}
+  defp temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{api_key()}/#{lat},#{lon}"}
   defp temperature_url(_), do: :error
 
   defp get_forecast({:ok, location_url}), do: HTTPoison.get(location_url)
@@ -59,4 +58,8 @@ defmodule Alice.Handlers.Weather do
   defp summarize(:error, _location, _coords, conn), do: reply(conn, ~s(Whoops, that didn't work.))
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
+  
+  defp api_key do
+    Application.get_env(:alice_weather, :api_key)
+  end
 end
