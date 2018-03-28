@@ -4,7 +4,6 @@ defmodule Alice.Handlers.Weather do
   use Alice.Router
   alias Alice.Conn
 
-  @api_key Application.get_env(:alice_weather, :api_key)
   @default_minutely_summary %{"minutely" => %{"summary" => ""}}
   
   command ~r/weather (?<term>.+)/i, :weather
