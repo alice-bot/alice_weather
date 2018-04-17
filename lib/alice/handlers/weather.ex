@@ -5,13 +5,13 @@ defmodule Alice.Handlers.Weather do
   alias Alice.Conn
 
   @default_minutely_summary %{"minutely" => %{"summary" => ""}}
-  
+
   command ~r/weather (?<term>.+)/i, :weather
   route ~r/^weather for (?<term>.+)/i, :weather
 
   @doc """
   `weather <location>`
-  `weather for <location>` 
+  `weather for <location>`
   Get weather forecast for the given location.
   Location can be an address, a city or a zip code.
   """
@@ -46,7 +46,7 @@ defmodule Alice.Handlers.Weather do
 
   defp summarize({:ok, weather_data}, location, {lat, lon}, conn) do
     %{
-      "currently" => %{"apparentTemperature" => temperature}, 
+      "currently" => %{"apparentTemperature" => temperature},
       "daily" => %{"summary" => daily_summary},
       "hourly" => %{"summary" => hourly_summary},
       "minutely" => %{"summary" => minutely_summary}
@@ -58,7 +58,7 @@ defmodule Alice.Handlers.Weather do
   defp summarize(:error, _location, _coords, conn), do: reply(conn, ~s(Whoops, that didn't work.))
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
-  
+
   defp api_key do
     Application.get_env(:alice_weather, :api_key)
   end
