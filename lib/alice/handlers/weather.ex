@@ -6,8 +6,8 @@ defmodule Alice.Handlers.Weather do
 
   @default_minutely_summary %{"minutely" => %{"summary" => ""}}
 
-  command ~r/weather ((for|in) )? (?<location>.+)/i, :weather
-  route   ~r/^weather ((for|in) )? (?<location>.+)/i, :weather
+  command ~r/weather ((for|in) )?(?<location>.+)/i, :weather
+  route   ~r/^weather ((for|in) )?(?<location>.+)/i, :weather
 
   @doc """
   `weather <location>`
@@ -42,12 +42,11 @@ defmodule Alice.Handlers.Weather do
     |> Geocodex.address
     |> parse_geocoder_response
   end
-  %{"results" => []} = Geocodex.address("710065")
 
   defp parse_geocoder_response(response) do
     with %{"results" => [results]} <- response,
          %{"address_components" => components} <- results,
-         %{"geometry" => %{"location" => %{"lat" => lat, "lng" => lng}} <- results
+         %{"geometry" => %{"location" => %{"lat" => lat, "lng" => lng}}} <- results
     do
       name = Enum.find(components, fn(component)->
         "locality" in component["types"]
@@ -71,7 +70,7 @@ defmodule Alice.Handlers.Weather do
       "minutely" => %{"summary" => minutely_summary}
     } = merge_defaults(weather_data)
 
-    ~s(Current temperature for #{location.name}: *#{round(temperature)}°F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary})
+    ~s(Current temperature in #{location.name}: *#{round(temperature)}°F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary})
   end
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)

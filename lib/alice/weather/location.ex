@@ -12,8 +12,8 @@ defmodule Alice.Weather.Location do
   }
 
   defstruct name: nil,
-            lat: lat,
-            lng: lng
+            lat:  nil,
+            lng:  nil
 
   def new(name, {lat, lng}) do
     %__MODULE__{name: name, lat: lat, lng: lng}
