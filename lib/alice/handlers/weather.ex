@@ -2,28 +2,39 @@ defmodule Alice.Handlers.Weather do
   @moduledoc "Lets users get weather information for a given location"
 
   use Alice.Router
-  alias Alice.Conn
+  alias Alice.Weather.Location
 
   @default_minutely_summary %{"minutely" => %{"summary" => ""}}
-  
-  command ~r/weather (?<term>.+)/i, :weather
-  route ~r/^weather for (?<term>.+)/i, :weather
+
+  command ~r/weather ((for|in) )?(?<location>.+)/i, :weather
+  route   ~r/^weather ((for|in) )?(?<location>.+)/i, :weather
 
   @doc """
   `weather <location>`
-  `weather for <location>` 
+  `weather in <location>`
+  `weather for <location>`
   Get weather forecast for the given location.
   Location can be an address, a city or a zip code.
   """
-  def weather(%Conn{message: %{captures: captures}}=conn) do
-    [_term, location] = captures
-    coords = location |> reverse_geocode
+  def weather(conn) do
+    weather_summary = with term <- Alice.Conn.last_capture(conn),
+         {:ok, %Location{} = loc} <- reverse_geocode(term),
+         url <- darksky_url(loc),
+         {:ok, response} <- HTTPoison.get(url),
+         {:ok, weather_data} <- parse_forecast(response)
+    do
+      delayed_reply(conn, ~s(Please visit darksky.net/forecast/#{loc.lat},#{loc.lng}/us12/en for detailed forecast.), 200)
+      summarize(weather_data, loc)
+    else
+      {:error, :cannot_parse_location} ->
+        "Sorry, I can't find that location"
+      {:error, :http_error, %HTTPoison.Response{status_code: code}} ->
+        "HTTP error: #{code}"
+      _any_other_error ->
+        "Unknown error :("
+    end
 
-    coords
-    |> temperature_url
-    |> get_forecast
-    |> parse_response
-    |> summarize(location, coords, conn)
+    reply(conn, weather_summary)
   end
 
   defp reverse_geocode(location) do
@@ -32,33 +43,38 @@ defmodule Alice.Handlers.Weather do
     |> parse_geocoder_response
   end
 
-  defp parse_geocoder_response(%{"results" => [%{"geometry" => %{"location" => %{"lat" => lat, "lng" => lon}}}]}), do: {lat, lon}
-  defp parse_geocoder_response(_), do: :error
+  defp parse_geocoder_response(response) do
+    with %{"results" => [results]} <- response,
+         %{"address_components" => components} <- results,
+         %{"geometry" => %{"location" => %{"lat" => lat, "lng" => lng}}} <- results
+    do
+      name = Enum.find(components, fn(component)->
+        "locality" in component["types"]
+      end)["long_name"]
+      {:ok, Location.new(name, {lat, lng})}
+    else
+      _ -> {:error, :cannot_parse_location}
+    end
+  end
 
-  defp temperature_url({lat, lon}), do: {:ok, "https://api.darksky.net/forecast/#{api_key()}/#{lat},#{lon}"}
-  defp temperature_url(_), do: :error
+  defp darksky_url(%Location{lat: lat, lng: lng}), do: "https://api.darksky.net/forecast/#{api_key()}/#{lat},#{lng}"
 
-  defp get_forecast({:ok, location_url}), do: HTTPoison.get(location_url)
-  defp get_forecast(_), do: :error
+  defp parse_forecast(%HTTPoison.Response{body: body, status_code: 200}), do: {:ok, JSON.decode!(body)}
+  defp parse_forecast(response), do: {:error, :http_error, response}
 
-  defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: 200}}), do: {:ok, JSON.decode!(body)}
-  defp parse_response(_), do: :error
-
-  defp summarize({:ok, weather_data}, location, {lat, lon}, conn) do
+  defp summarize(weather_data, %Location{name: location_name}) do
     %{
-      "currently" => %{"apparentTemperature" => temperature}, 
+      "currently" => %{"apparentTemperature" => temperature},
       "daily" => %{"summary" => daily_summary},
       "hourly" => %{"summary" => hourly_summary},
       "minutely" => %{"summary" => minutely_summary}
     } = merge_defaults(weather_data)
 
-    reply(conn, ~s(Current temperature for #{location}: *#{temperature}F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary}))
-    reply(conn, ~s(Please visit darksky.net/forecast/#{lat},#{lon}/us12/en for detailed forecast.))
+    ~s(Current temperature in #{location_name}: *#{round(temperature)}°F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary})
   end
-  defp summarize(:error, _location, _coords, conn), do: reply(conn, ~s(Whoops, that didn't work.))
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
-  
+
   defp api_key do
     Application.get_env(:alice_weather, :api_key)
   end
