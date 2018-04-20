@@ -62,7 +62,7 @@ defmodule Alice.Handlers.Weather do
   defp parse_forecast(%HTTPoison.Response{body: body, status_code: 200}), do: {:ok, JSON.decode!(body)}
   defp parse_forecast(response), do: {:error, :http_error, response}
 
-  defp summarize(weather_data, location) do
+  defp summarize(weather_data, %Location{name: location_name}) do
     %{
       "currently" => %{"apparentTemperature" => temperature},
       "daily" => %{"summary" => daily_summary},
@@ -70,7 +70,7 @@ defmodule Alice.Handlers.Weather do
       "minutely" => %{"summary" => minutely_summary}
     } = merge_defaults(weather_data)
 
-    ~s(Current temperature in #{location.name}: *#{round(temperature)}°F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary})
+    ~s(Current temperature in #{location_name}: *#{round(temperature)}°F*\nSummary: #{daily_summary} #{hourly_summary} #{minutely_summary})
   end
 
   defp merge_defaults(map), do: Map.merge(@default_minutely_summary, map)
